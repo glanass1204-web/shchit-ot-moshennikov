@@ -62,19 +62,28 @@
           <div class="chips" id="examples"></div>
         </div>
 
+        <label class="ai-option"><input type="checkbox" id="useAI"> Дополнить проверку разбором ИИ</label>
+        <p class="privacy">При включении ИИ текст передаётся OpenAI. Удалите личные данные, пароли, номера карт и коды подтверждения перед проверкой.</p>
         <button type="submit" class="check-btn" id="checkBtn" disabled>
           <span class="btn-label">Проверить</span>
           <span class="spinner" aria-hidden="true"></span>
         </button>
         <p class="privacy">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3z" fill="currentColor"/></svg>
-          Текст не сохраняется и никуда не передаётся, кроме проверки
+          Сайт не сохраняет текст. Без ИИ проверка выполняется на сервере сайта.
         </p>
         <p class="error" id="error" role="alert" hidden></p>
       </form>
     </section>
 
     <section id="result" class="result" hidden aria-live="polite">
+      <div class="card" id="aiCard" hidden>
+        <h2 class="section-title">Разбор ИИ</h2>
+        <p id="aiSummary"></p>
+        <ul class="advice" id="aiSigns"></ul>
+        <ol class="advice" id="aiAdvice"></ol>
+        <p class="privacy">Оценка ИИ может быть ошибочной. Это не проверка личности отправителя или репутации сайта.</p>
+      </div>
       <div class="card score-card" id="scoreCard">
         <div class="gauge">
           <svg viewBox="0 0 200 116" aria-hidden="true">
@@ -92,7 +101,7 @@
           </svg>
           <div class="gauge-value">
             <span class="score" id="scoreValue">0</span>
-            <span class="score-max">из 100</span>
+            <span class="score-max">из 100 · баллы риска</span>
           </div>
         </div>
         <div class="verdict">

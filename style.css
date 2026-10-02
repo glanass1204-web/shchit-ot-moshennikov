@@ -219,3 +219,6 @@ mark { background: var(--mark); color: inherit; border-bottom: 2px solid var(--m
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.ai-option { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; cursor: pointer; }
+.ai-option input { width: 20px; height: 20px; flex-shrink: 0; }

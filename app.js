@@ -116,15 +116,16 @@
     btn.classList.add("loading");
     btn.disabled = true;
     btn.querySelector(".btn-label").textContent = "Проверяем";
+    const originalText = text;
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, use_ai: $("useAI").checked }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
-      render(data, input.value);
+      render(data, originalText);
     } catch (err) {
       showError("Не удалось выполнить проверку. Проверьте подключение к интернету и попробуйте снова.");
     } finally {
@@ -159,6 +160,17 @@
 
   function render(data, originalText) {
     result.hidden = false;
+    const ai = data.ai;
+    $("aiCard").hidden = !ai;
+    $("aiSigns").replaceChildren();
+    $("aiAdvice").replaceChildren();
+    if (ai) {
+      const labels = {low: "Низкий", medium: "Средний", high: "Высокий", critical: "Критический"};
+      $("aiSummary").textContent = ai.status === "ok"
+        ? `${labels[ai.risk]} риск по оценке ИИ. ${ai.explanation}` : ai.message;
+      (ai.signs || []).forEach(s => $("aiSigns").append(el("li", null, s)));
+      (ai.recommendations || []).forEach(s => $("aiAdvice").append(el("li", null, s)));
+    }
     // перезапуск анимации появления
     result.style.animation = "none"; void result.offsetWidth; result.style.animation = "";
 

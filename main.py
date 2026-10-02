@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from analyzer import MAX_LEN, analyze
+from ai_analyzer import analyze_ai
 
 BASE = Path(__file__).parent
 
@@ -13,11 +14,15 @@ app = FastAPI(title="Щит от мошенников", version="1.0.0")
 
 class CheckRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=MAX_LEN)
+    use_ai: bool = False
 
 
 @app.post("/api/analyze")
 def api_analyze(req: CheckRequest) -> dict:
-    return analyze(req.text)
+    result = analyze(req.text)
+    if req.use_ai:
+        result["ai"] = analyze_ai(req.text)
+    return result
 
 
 @app.get("/api/health")
