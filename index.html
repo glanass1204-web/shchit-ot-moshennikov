@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Щит от мошенников</title>
+  <meta name="description" content="Проверьте подозрительное сообщение или ссылку на признаки мошенничества">
+  <meta name="theme-color" content="#0f1b3d" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f5fb" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%233b6cff' d='M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z'/%3E%3Cpath fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m8.5 12 2.5 2.5 4.5-5'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="currentColor"/>
+          <path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Щит от мошенников</span>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Это мошенники?<br><span class="accent">Проверьте за секунду</span></h1>
+      <p class="lead">Вставьте подозрительное SMS, сообщение из мессенджера, письмо или ссылку — мы найдём признаки обмана и подскажем, что делать.</p>
+    </section>
+
+    <section class="card input-card" aria-labelledby="inputLabel">
+      <form id="checkForm" novalidate>
+        <label id="inputLabel" for="message" class="sr-only">Текст сообщения или ссылка</label>
+        <div class="textarea-wrap">
+          <textarea id="message" name="message" maxlength="10000" rows="8"
+            placeholder="Например: «Ваша карта заблокирована. Для разблокировки назовите код из SMS…»"
+            autocomplete="off" spellcheck="false"></textarea>
+          <div class="textarea-tools">
+            <button type="button" class="tool-btn" id="pasteBtn">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1zm-3 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-1v2H6z" fill="currentColor"/></svg>
+              Вставить
+            </button>
+            <button type="button" class="tool-btn" id="clearBtn" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              Очистить
+            </button>
+            <span class="counter" id="counter">0 / 10 000</span>
+          </div>
+        </div>
+
+        <div class="examples">
+          <span class="examples-label">Примеры:</span>
+          <div class="chips" id="examples"></div>
+        </div>
+
+        <button type="submit" class="check-btn" id="checkBtn" disabled>
+          <span class="btn-label">Проверить</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <p class="privacy">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3z" fill="currentColor"/></svg>
+          Текст не сохраняется и никуда не передаётся, кроме проверки
+        </p>
+        <p class="error" id="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section id="result" class="result" hidden aria-live="polite">
+      <div class="card score-card" id="scoreCard">
+        <div class="gauge">
+          <svg viewBox="0 0 200 116" aria-hidden="true">
+            <defs>
+              <linearGradient id="gaugeTrack" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0" stop-color="var(--low)"/>
+                <stop offset=".45" stop-color="var(--medium)"/>
+                <stop offset=".7" stop-color="var(--high)"/>
+                <stop offset="1" stop-color="var(--critical)"/>
+              </linearGradient>
+            </defs>
+            <path class="gauge-track" d="M20 100 A80 80 0 0 1 180 100"/>
+            <path class="gauge-fill" id="gaugeFill" d="M20 100 A80 80 0 0 1 180 100"/>
+            <circle class="gauge-dot" id="gaugeDot" r="7" cx="20" cy="100"/>
+          </svg>
+          <div class="gauge-value">
+            <span class="score" id="scoreValue">0</span>
+            <span class="score-max">из 100</span>
+          </div>
+        </div>
+        <div class="verdict">
+          <span class="level-badge" id="levelBadge">—</span>
+          <p id="verdictText"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20zm0 6v5m0 3v.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Найденные признаки <span class="count" id="signsCount"></span>
+        </h2>
+        <ul class="signs" id="signs"></ul>
+        <p class="empty" id="noSigns" hidden>Явных признаков мошенничества не обнаружено.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m8.5 12 2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Что делать
+        </h2>
+        <ol class="advice" id="advice"></ol>
+      </div>
+
+      <details class="card highlight-card" id="highlightCard">
+        <summary>
+          <span class="section-title as-summary">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Опасные фрагменты в тексте
+          </span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="highlighted" id="highlighted"></div>
+      </details>
+
+      <button type="button" class="again-btn" id="againBtn">Проверить другое сообщение</button>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Проверка автоматическая и не даёт 100% гарантии. Если сомневаетесь — позвоните в организацию по официальному номеру. Экстренная помощь: <a href="tel:102">102</a> (полиция).</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
