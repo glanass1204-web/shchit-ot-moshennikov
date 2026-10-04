@@ -52,7 +52,7 @@ Mode: Startup
 Только в личных диалогах с сообществом (`peer_id < 2000000000`). Сообщения из бесед игнорируются: бот не читает групповые чаты и ничего туда не пишет.
 
 ### Сборка текста для проверки
-- Рекурсивно собираем текст из самого сообщения, всех `fwd_messages` (включая вложенные) и `reply_message`.
+- Рекурсивно собираем текст из самого сообщения, всех `fwd_messages` (включая вложенные) и `reply_message`. Сообщения самого сообщества (`from_id < 0`, например цитата ответа бота) пропускаются — иначе бот проверял бы собственный ответ, а «помогло» в ответ на него не распознавалось бы.
 - Добавляем URL из вложений-ссылок (`attachments[].link.url`) на всех уровнях, чтобы проверялись и ссылки, спрятанные за текстом.
 - Части склеиваются через перевод строки, и делается **один** вызов `analyze()` — один вердикт на одно сообщение пользователя.
 - Если текст длиннее `MAX_LEN` (10 000 символов), он обрезается, а к ответу добавляется строка: «Сообщение очень длинное, проверены первые 10 000 символов».
@@ -432,11 +432,11 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: Architecture — A1; план «Формат ответа», «Сборка текста», «Служебные сообщения»
   - Files: bot_core.py, tests/test_bot_core.py
   - Verify: `pytest tests/test_bot_core.py`
-- [ ] **T4 (P1, human: ~1d / CC: ~20min)** — vk_bot — /vk/callback, dedup, лимит с очисткой (D10), таймаут 5 с (D6), проверка токена (D7)
+- [x] **T4 (P1, human: ~1d / CC: ~20min)** — vk_bot — /vk/callback, dedup, лимит с очисткой (D10), таймаут 5 с (D6), проверка токена (D7)
   - Surfaced by: Architecture — A2, A3; Performance — P1
   - Files: vk_bot.py, main.py, tests/test_vk_bot.py
   - Verify: `pytest tests/test_vk_bot.py tests/test_api.py`
-- [ ] **T5 (P3, human: ~15min / CC: ~3min)** — deploy — render.yaml с `--workers 1` и строка в README
+- [x] **T5 (P3, human: ~15min / CC: ~3min)** — deploy — render.yaml с `--workers 1` и строка в README
   - Surfaced by: Architecture — A4
   - Files: render.yaml, README.md
   - Verify: сверить стартовую команду в настройках Render

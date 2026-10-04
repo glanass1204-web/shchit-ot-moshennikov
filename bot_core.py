@@ -54,10 +54,11 @@ class Reply:
 
 
 def _children(msg: dict) -> list[dict]:
+    """Пересланные и цитируемое сообщения, кроме ответов самого сообщества (from_id < 0)."""
     out = list(msg.get("fwd_messages") or [])
     if msg.get("reply_message"):
         out.append(msg["reply_message"])
-    return out
+    return [m for m in out if (m.get("from_id") or 0) >= 0]
 
 
 def collect_text(msg: dict) -> str:
@@ -101,7 +102,7 @@ def classify(msg: dict) -> str:
     """start | helped | check | image | empty."""
     if _payload_command(msg) == "start":
         return "start"
-    bare = not msg.get("fwd_messages") and not msg.get("reply_message") and not msg.get("attachments")
+    bare = not _children(msg) and not msg.get("attachments")
     if bare:
         word = (msg.get("text") or "").strip().lower().rstrip(".!?,… ")
         if word in START_WORDS:

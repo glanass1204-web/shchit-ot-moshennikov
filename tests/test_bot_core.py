@@ -65,6 +65,13 @@ def test_service_words_with_content_are_checked(msg):
     assert classify(msg) == "check"
 
 
+def test_quoting_bot_reply_is_not_checked():
+    bot_answer = handle({"text": SCAM}).text
+    quoted = {"from_id": -12345, "text": bot_answer}
+    assert classify({"text": "помогло", "reply_message": quoted}) == "helped"
+    assert classify({"text": "", "reply_message": quoted}) == "empty"
+
+
 def test_photo_without_text_gets_copy_instructions():
     msg = {"text": "", "attachments": [{"type": "photo", "photo": {}}]}
     reply = handle(msg)
