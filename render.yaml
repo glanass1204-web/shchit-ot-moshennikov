@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: shchit-ot-moshennikov
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    # Один воркер обязателен: защита от повторных доставок VK и лимит сообщений
+    # хранятся в памяти процесса (vk_bot.py).
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: VK_GROUP_TOKEN
+        sync: false
+      - key: VK_SECRET
+        sync: false
+      - key: VK_CONFIRMATION
+        sync: false

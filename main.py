@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -6,10 +7,19 @@ from pydantic import BaseModel, Field
 
 from analyzer import MAX_LEN, analyze
 from ai_analyzer import analyze_ai
+import vk_bot
 
 BASE = Path(__file__).parent
 
-app = FastAPI(title="Щит от мошенников", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    vk_bot.check_token()
+    yield
+
+
+app = FastAPI(title="Щит от мошенников", version="1.0.0", lifespan=lifespan)
+app.include_router(vk_bot.router)
 
 
 class CheckRequest(BaseModel):
@@ -27,7 +37,7 @@ def api_analyze(req: CheckRequest) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {"status": "ok", "vk": vk_bot.token_status}
 
 
 @app.get("/", include_in_schema=False)
