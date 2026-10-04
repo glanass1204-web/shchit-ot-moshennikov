@@ -43,9 +43,9 @@ Mode: Startup
 
 ### Поток обработки
 1. VK присылает `POST /vk/callback`. Если `type == confirmation`, возвращаем `VK_CONFIRMATION`. Если `secret` не совпадает, возвращаем 403 и ничего не делаем.
-2. Для `message_new` сразу отвечаем `ok`, а обработку запускаем через FastAPI `BackgroundTasks`. Сервис работает в одном процессе (один воркер uvicorn).
+2. Для `message_new` сразу отвечаем `ok`, а обработку запускаем через FastAPI `BackgroundTasks`. Сервис работает в одном процессе: это закреплено в `render.yaml` командой `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1` (eng review D8).
 3. Дедупликация повторных доставок: `event_id` хранится в памяти процесса, в ограниченном LRU-наборе на 10 000 записей с TTL 1 час. После перезапуска набор пустой — это принятый риск, его дополнительно закрывает `random_id`.
-4. Ответ отправляется через `messages.send` (API версии 5.199) с `peer_id` и `random_id`. `random_id` — стабильный 31-битный хэш от `event_id`: даже если событие обработают дважды, VK не отправит второй ответ.
+4. Ответ отправляется через `messages.send` (API версии 5.199, таймаут 5 с — eng review D6) с `peer_id` и `random_id`. `random_id` — стабильный 31-битный хэш от `event_id`: даже если событие обработают дважды, VK не отправит второй ответ.
 5. Если после ответа `ok` обработка упала, ответ пользователю теряется. Это принятый риск v1. Ошибка логируется без текста (см. «Ошибки»).
 
 ### Где работает бот
@@ -60,7 +60,8 @@ Mode: Startup
 ### Служебные сообщения
 - Кнопка «Начать» (`payload {"command":"start"}`), а также тексты «начать», «привет», «помощь», «/start», «/help» получают приветствие, а не проверку: «Перешлите сюда подозрительное сообщение или ссылку — я скажу, похоже ли это на мошенников. Перед отправкой уберите коды из СМС и номера карт» плюс короткая приписка о приватности.
 - **Правило распознавания:** служебная обработка срабатывает, только если в сообщении нет `fwd_messages`, `reply_message` и вложений, а собственный текст после `strip().lower()` и удаления конечных знаков препинания **целиком** совпадает с одним из слов: «начать», «привет», «помощь», «/start», «/help», «помогло». Кнопка «Начать» распознаётся по `payload`. Во всех остальных случаях, например «привет, это мошенники?» или «помогло» вместе с пересланным сообщением, выполняется обычная проверка.
-- Пустой ввод (стикер, картинка без текста, голосовое) получает ответ: «Перешлите сюда текст подозрительного сообщения или ссылку».
+- Пустой ввод (стикер, голосовое) получает ответ: «Перешлите сюда текст подозрительного сообщения или ссылку».
+- **Картинка без текста (eng review D5):** ответ-инструкция «Нажмите на подозрительное сообщение и удерживайте → Копировать → вставьте текст сюда» и строка лога `event:"image"`. По этой строке через неделю видно, нужен ли OCR.
 
 ### Формат ответа: `bot_core.format_reply(result) -> str`
 Соответствие уровней и вердиктов:
@@ -74,7 +75,7 @@ Mode: Startup
 - **Признаки:** до трёх признаков с `score ≥ 10`, отсортированных по убыванию. Выводятся только иконка и `title`, без `detail`, хостов и технических причин из `links[]` (punycode, доменная зона, IP). Нейтральный признак «В сообщении есть ссылка» (score 5) не показывается никогда. На зелёном вердикте список признаков не выводится.
 - **Действие:** одна строка — `recommendations[0]`. Это совет самого сильного признака, а если признаков нет, то совет уровня. Для `low` берётся фиксированная фраза: «Если сомневаетесь — позвоните отправителю по номеру, который знаете сами».
 - **Последняя строка:** «Проверка автоматическая и не даёт 100% гарантии».
-- **Сбор историй:** к красному и оранжевому ответу добавляется строка «Если проверка помогла, напишите "помогло"». Ответ «помогло» засчитывается счётчиком (см. «Метрики») и получает «Спасибо!». Его текст не сохраняется.
+- **Сбор историй:** к красному и оранжевому ответу добавляется строка «Если проверка помогла, напишите "помогло"». Ответ «помогло» пишется в лог (см. «Метрики») и получает «Спасибо!». Его текст не сохраняется.
 
 ### Модель приватности
 - Приложение не сохраняет и не логирует текст сообщений.
@@ -83,26 +84,33 @@ Mode: Startup
 - ИИ-разбор в v1 **не входит**: кнопка «подробнее» потребовала бы хранить текст до нажатия, а это противоречит модели приватности. Решение откладывается.
 
 ### Метрики (без текста)
-Логи Render хранятся недолго (на младших планах около недели) и 14-дневный тест не переживут. Поэтому метрики пишутся в отдельную таблицу `metrics(ts, channel, event, level, uid_hash)` в бесплатной Postgres на Render: её 30 дней жизни хватает на тест. Строка подключения — `DATABASE_URL`. Каждая проверка добавляет строку `{ts, channel:"vk", event:"check", level, uid_hash}`, где `ts` — время с точностью до минуты, где `uid_hash = HMAC-SHA256(METRICS_SALT, from_id)`, обрезанный до 12 символов. По этим данным считаются уникальные люди и повторные проверки, а сам ID восстановить нельзя. «Помогло» пишется как `{ts, event:"helped", uid_hash}`. Если запись в базу не удалась, это не мешает ответу пользователю, и ошибка логируется без текста. Тестовые аккаунты автора и знакомых исключаются вручную по их хэшам, которые автор вычисляет сам.
+*Изменено по итогам eng review (D2): базы данных нет.*
+- **Люди и повторы** считаются вручную по списку диалогов сообщества VK: там видно, кто писал, когда и сколько раз, и кто ответил «помогло». Автору этот список и так доступен, поэтому приватность не страдает. Тестовые аккаунты автора и знакомых автор исключает сам.
+- **Уровни риска.** Каждая проверка пишет в stdout одну строку `{"ts":..., "channel":"vk", "event":"check", "level":...}`, без ID пользователя и без текста. «Помогло» пишется как `{"ts":..., "event":"helped"}`. Логи Render живут недолго, поэтому это вспомогательные данные: решение через 14 дней принимается по списку диалогов VK.
+- Если людей станет больше, чем можно посчитать вручную (сотни), это сигнал добавить хранилище. Это отдельная задача после v1.
 
 ### Ограничение частоты
-Не больше 10 проверок в минуту на одного `from_id` (счётчик в памяти). При превышении бот один раз отвечает: «Слишком много сообщений, попробуйте через минуту».
+Не больше 10 проверок в минуту на одного `from_id` (счётчик в памяти; записи старше 60 с удаляются при каждой проверке, потолок 10 000 `from_id` — eng review D10). При превышении бот один раз отвечает: «Слишком много сообщений, попробуйте через минуту».
 
 ### Ошибки
 - Если `analyze()` или сборка текста упали, пользователь получает: «Не получилось проверить. Пока не переводите деньги и не переходите по ссылкам — позвоните в банк по номеру на карте».
-- Если `messages.send` вернул ошибку или упёрся в лимит, одна повторная попытка через 1 секунду, затем запись в лог.
+- Если `messages.send` вернул ошибку, упёрся в лимит или не ответил за 5 с, одна повторная попытка через 1 секунду, затем запись в лог.
+- **Проверка токена (eng review D7):** при старте сервиса один вызов `groups.getById` с `VK_GROUP_TOKEN`. При ошибке — запись в лог и `"vk": "error"` в `/api/health`.
 - Ошибки логируются только как тип исключения и место. Тело запроса, текст сообщения и полный traceback с локальными переменными в лог не попадают. Обработчик ошибок валидации FastAPI для `/vk/callback` переопределяется, чтобы тело запроса не попадало в лог.
 
 ### Холодный старт
 Бесплатный инстанс Render засыпает, и первый ответ после простоя придёт через десятки секунд, а VK начнёт повторять доставки. Решение: по умолчанию во всех текстах для пользователей (приветствие, закреплённый пост) писать «ответ придёт в течение минуты». Формулировку «ответим сразу» можно использовать, только если сервис переведён на план без засыпания (Starter).
 
 ### Тесты
+- **Сначала (eng review D9):** `tests/test_api.py` — регрессия сайта: POST /api/analyze (поля score/level/signs/recommendations), пустой text → 422, GET / → 200, GET /api/health → ok.
+- **Сначала (eng review D4):** `tests/test_analyzer.py` — регрессионный контракт `analyze()`: пороги уровней, сортировка признаков, `recommendations[0]`, нейтральная ссылка со score 5, обрезка по `MAX_LEN`.
 - `format_reply` для каждого из четырёх уровней: правильная строка вердикта, порог признаков, отсутствие признака ссылки, фраза для `low`.
 - Сборка текста: вложенные `fwd_messages`, `reply_message`, скрытая ссылка во вложении, обрезка по `MAX_LEN`.
 - Callback: confirmation, неверный `secret` → 403, повтор `event_id` → одна отправка, стабильность `random_id`, игнорирование бесед.
 - Служебные сообщения: «Начать»/payload, пустой ввод, «помогло», а также смешанные случаи («привет, это мошенники?», «помогло» + пересланное сообщение) — они идут на проверку.
-- Метрики: строка пишется в `metrics`, а падение базы не ломает ответ.
+- Метрики: на проверку и на «помогло» пишется одна строка лога без ID и без текста.
 - Ограничение частоты: 11-е сообщение в минуту.
+- Картинка без текста → инструкция и `event:"image"` (D5); таймаут `messages.send` → 1 повтор (D6); битый токен при старте → `"vk": "error"` в `/api/health` (D7).
 - Ошибка внутри `analyze()`: пользователь получает запасной ответ, а в лог не попадает текст сообщения.
 
 ### После v1 (не входит в объём)
@@ -116,9 +124,9 @@ Mode: Startup
 - Готов ли автор платить за инстанс без засыпания (Starter) на время теста? От этого зависит только формулировка про скорость ответа.
 
 ## Success Criteria
-Через 14 дней после запуска, по метрикам с `uid_hash`:
-- не меньше 10 уникальных `uid_hash`, не считая тестовых аккаунтов автора и знакомых;
-- не меньше 3 из них проверили второе сообщение не раньше чем через 24 часа после первого (по `ts`);
+Через 14 дней после запуска, по списку диалогов сообщества VK:
+- не меньше 10 разных людей, не считая тестовых аккаунтов автора и знакомых;
+- не меньше 3 из них прислали второе сообщение на проверку не раньше чем через 24 часа после первого;
 - хотя бы одно «помогло» или одна история «бот предупредил, и я не перевёл деньги» (через «помогло» или в комментариях сообщества).
 Если повторных проверок ноль, гипотеза «мессенджер вместо сайта» не подтвердилась, и это повод пересмотреть ставку.
 
@@ -132,8 +140,7 @@ Mode: Startup
 1. Управление → Сообщения: включить сообщения сообщества и в «Настройках для бота» включить возможности ботов и кнопку «Начать».
 2. Управление → Работа с API → Ключи доступа: создать ключ с правом «сообщения сообщества». Сохранить его в Render как `VK_GROUP_TOKEN`.
 3. Работа с API → Callback API: версия API 5.199, адрес `https://<сервис>.onrender.com/vk/callback`, секретный ключ (`VK_SECRET`), строку подтверждения (`VK_CONFIRMATION`). В «Типах событий» отметить только «Входящее сообщение».
-4. В Render добавить `METRICS_SALT` (случайная строка), создать бесплатную Postgres и прописать `DATABASE_URL`.
-5. Доступ к сообщениям сообщества — только у автора.
+4. Доступ к сообщениям сообщества — только у автора.
 
 PR #1 (настройки плагина) никак не связан с этой работой.
 
@@ -210,3 +217,260 @@ Stop: CONVERGENCE
 
 > Холодный старт now describes the problem and both options, but the plan remains an Open Question and the Distribution Plan still promises 'ответим сразу' regardless of plan.
 <!-- gstack:office-hours:concerns:end -->
+
+## Eng Review (/plan-eng-review, 2026-10-04)
+Target: docs/designs/vk-bot.md
+
+### Scope record
+feature answers: D2 → B «Убрать базу» (Postgres, DATABASE_URL, METRICS_SALT и uid_hash удалены из v1; метрики — по списку диалогов VK плюс строка лога без ID); structure: A «Original arrangement» (D3) — `bot_core.py` (чистые функции) + `vk_bot.py` (APIRouter, подключается в `main.py`); accepted scope: бот VK v1 из раздела Recommended Approach без хранилища метрик; pending remedies: S1 (resolved D4 → A).
+Scope Challenge result: scope reduced per recommendation.
+
+
+## Decision ledger
+
+### S1: Регрессионный контракт `analyze()` перед ботом
+Finding: S1, P1, confidence 9/10, README.md:49 «tests/ — тесты анализатора и API» и README.md:39 «pytest», но `git ls-files` не содержит ни одного теста; reviewer: /plan-eng-review (Scope Challenge).
+Plan baseline: план (раздел «Тесты») покрывает только новый код бота; контракт `analyze()` (analyzer.py:412-518), на котором держится `format_reply`, тестами не защищён. Одобренного значения нет.
+Runtime evidence: analyzer.py:373-378 пороги 75/50/20/0; analyzer.py:499 `signs.sort(key=lambda s: s["score"], reverse=True)`; analyzer.py:500-506 рекомендации берутся из признаков со score ≥ 10, затем GENERAL_ADVICE; analyzer.py:470-479 нейтральный признак ссылки со score 5. Тестов нет (проверено `git ls-files`).
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| S1 контракт analyze() | не покрыт тестами, pending | `tests/test_analyzer.py`: пороги уровней (19/20, 49/50, 74/75 через подобранные тексты), сортировка signs по убыванию, recommendations[0] = advice сильнейшего признака со score ≥ 10, нейтральная ссылка = score 5, обрезка по MAX_LEN | без тестов analyze(); бот полагается на текущее поведение |
+| Тесты нового кода бота | одобрены в плане (раздел «Тесты») | без изменений | без изменений |
+Question D4:
+D4 — Добавить в план регрессионные тесты для analyze() до написания бота?
+Project/branch/task: shchit-ot-moshennikov, план docs/designs/vk-bot.md.
+ELI10: Бот целиком полагается на то, что возвращает `analyze()`: уровень риска, порядок признаков, первый совет. README обещает тесты, но в репозитории их нет вообще. Если кто-то поменяет порядок признаков или пороги в analyzer.py, бот молча начнёт давать пожилым людям не тот совет.
+Stakes if we pick wrong: без тестов правка правил в analyzer.py может незаметно сломать вердикт или главный совет в каждом ответе бота.
+Recommendation: A, потому что это 5–6 проверок на уже существующем коде, а защищают они каждый ответ бота.
+Completeness: A=10/10, B=5/10
+Header: Тесты analyze
+Options:
+A) Добавить тесты (recommended)
+tests/test_analyzer.py фиксирует контракт: пороги уровней, сортировку признаков, recommendations[0], нейтральную ссылку со score 5 и обрезку по MAX_LEN. Работа: human ~2 ч / CC ~10 мин. Риск низкий, поддержка — обновлять при намеренной смене правил.
+B) Без тестов analyze
+Бот опирается на текущее поведение analyzer.py без защиты. Работа: 0. Риск: тихая поломка ответов бота при любой правке правил.
+
+State: approved
+Actual answer: A) Добавить тесты (D4, ответ пользователя)
+Accepted scope: `tests/test_analyzer.py` фиксирует контракт analyze(): пороги уровней 75/50/20/0, сортировку signs по убыванию score, recommendations[0] = advice сильнейшего признака со score ≥ 10, нейтральный признак ссылки со score 5, обрезку по MAX_LEN. Пишется до кода бота.
+History: —
+
+### A1: Скриншоты как основной ввод
+Finding: A1, P1, confidence 8/10, docs/designs/vk-bot.md «Служебные сообщения»: «Пустой ввод (стикер, картинка без текста, голосовое) получает ответ: "Перешлите сюда текст..."»; reviewer: /plan-eng-review (Architecture).
+Plan baseline: картинка без текста → просьба прислать текст (одобрено в office-hours D5).
+Runtime evidence: `fwd_messages` работает только для сообщений из VK; SMS и WhatsApp в VK пересылаются только как скопированный текст или скриншот. Доля скриншотов неизвестна.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| A1 обработка картинок | ответ «перешлите текст» | ответ с короткой инструкцией «как скопировать текст из СМС» + строка лога `event:"image"` для подсчёта | распознавание текста на скриншотах (OCR) в v1 |
+Header: Скриншоты
+Options:
+A) Инструкция + подсчёт (recommended)
+На картинку бот отвечает инструкцией «нажмите на сообщение и удерживайте → Копировать → вставьте сюда» и пишет в лог event:"image". Если скриншотов много, OCR — следующий шаг. Работа: human ~30 мин / CC ~5 мин.
+B) OCR в v1
+Распознавать текст на скриншотах (например, Tesseract с русским языком или облачный OCR). Работа: human ~2 дня / CC ~1 ч; новая системная зависимость на Render, ошибки распознавания.
+Question: D5 (текст вопроса — в чате, варианты выше)
+State: approved
+Actual answer: A) Инструкция + подсчёт (D5, ответ пользователя)
+Accepted scope: На картинку без текста бот отвечает инструкцией «нажмите на сообщение и удерживайте → Копировать → вставьте сюда» и пишет в лог event:"image". OCR — после v1, если скриншотов много.
+History: —
+
+### A2: Таймаут вызовов VK API
+Finding: A2, P2, confidence 8/10, docs/designs/vk-bot.md «Поток обработки» п.4 и «Ошибки»: таймаут для `messages.send` не указан; reviewer: /plan-eng-review (Architecture).
+Plan baseline: 1 повтор через 1 с, таймаут не задан.
+Runtime evidence: httpx по умолчанию ставит таймаут 5 с; в проекте он используется в ai_analyzer.py, значение для бота не зафиксировано.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| A2 таймаут messages.send | не задан | явный `timeout=5` с на запрос, 1 повтор | оставить как есть |
+Header: Таймаут VK
+Options:
+A) Явный таймаут 5 с (recommended)
+Каждый вызов messages.send с timeout=5 с, после ошибки или таймаута 1 повтор, затем запись в лог. Тест на таймаут. Работа: CC ~2 мин.
+B) Не фиксировать
+Полагаться на поведение библиотеки по умолчанию. Работа: 0. Риск: при смене клиента или настроек потоки могут зависать.
+Question: D6 (текст вопроса — в чате, варианты выше)
+State: approved
+Actual answer: A) Явный таймаут 5 с (D6, ответ пользователя)
+Accepted scope: messages.send с timeout=5 с; после ошибки или таймаута 1 повтор, затем лог без текста; тест на таймаут.
+History: —
+
+### A3: Проверка токена VK
+Finding: A3, P2, confidence 7/10, docs/designs/vk-bot.md «Ошибки»: при ошибке messages.send — «затем запись в лог»; reviewer: /plan-eng-review (Architecture).
+Plan baseline: ошибки отправки только логируются.
+Runtime evidence: main.py:28-30 `/api/health` возвращает `{"status": "ok"}` без проверок.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| A3 обнаружение битого токена | только лог | при старте вызов `groups.getById` с токеном; при ошибке — громкая запись в лог и `"vk": "error"` в `/api/health` | только лог |
+Header: Токен VK
+Options:
+A) Проверка при старте (recommended)
+При запуске сервиса бот один раз проверяет токен через groups.getById. Ошибка видна в логе Render сразу после деплоя и в /api/health. Работа: CC ~5 мин, 1 тест.
+B) Только лог
+Как в плане: ошибки отправки видны только в логе при попытках ответить. Работа: 0. Риск: битый токен заметят по жалобам пользователей.
+Question: D7 (текст вопроса — в чате, варианты выше)
+State: approved
+Actual answer: A) Проверка при старте (D7, ответ пользователя)
+Accepted scope: При старте один вызов groups.getById с VK_GROUP_TOKEN; при ошибке — запись в лог и "vk": "error" в /api/health; 1 тест.
+History: —
+
+### A4: Один воркер
+Finding: A4, P3, confidence 7/10, docs/designs/vk-bot.md «Поток обработки» п.2: «Сервис работает в одном процессе (один воркер uvicorn)»; reviewer: /plan-eng-review (Architecture).
+Plan baseline: условие одного воркера записано в плане, но нигде не зафиксировано.
+Runtime evidence: в репозитории нет Procfile или render.yaml; README.md запускает `uvicorn main:app --reload`; команда запуска на Render неизвестна.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| A4 фиксация одного воркера | только текст плана | `render.yaml` со стартовой командой `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1` + строка в README | оставить как есть |
+Header: Один воркер
+Options:
+A) Зафиксировать в render.yaml (recommended)
+Команда запуска хранится в репозитории, и дедупликация с лимитом гарантированно работают в одном процессе. Работа: CC ~3 мин. Если на Render уже задана другая команда, её нужно сверить.
+B) Оставить как есть
+Положиться на текущие настройки Render. Работа: 0. Риск: при --workers 2 повторные доставки дадут двойные ответы.
+Question: D8 (текст вопроса — в чате, варианты выше)
+State: approved
+Actual answer: A) Зафиксировать в render.yaml (D8, ответ пользователя)
+Accepted scope: render.yaml со стартовой командой `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1` и строка в README; сверить с текущей командой на Render.
+History: —
+
+### T1: Регрессия сайта после подключения роутера
+Finding: T1, P1, confidence 8/10, main.py:20-25 `@app.post("/api/analyze") def api_analyze(req: CheckRequest)` — тестов нет, а план меняет main.py (`include_router`); reviewer: /plan-eng-review (Test review, REGRESSION RULE).
+Plan baseline: тесты сайта в плане отсутствуют.
+Runtime evidence: main.py:20-25 возвращает результат analyze() и поле `ai` при use_ai; main.py:33-35 отдаёт index.html. Тестов нет.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| T1 регрессионный контракт сайта | нет | `tests/test_api.py` (TestClient): POST /api/analyze возвращает score/level/signs/recommendations; пустой text → 422; GET / → 200 HTML; GET /api/health → status ok | без тестов |
+Question: D9
+State: approved
+Actual answer: A) Добавить tests/test_api.py (D9, ответ пользователя)
+Accepted scope: `tests/test_api.py` (TestClient): POST /api/analyze возвращает score/level/signs/recommendations; пустой text → 422; GET / → 200 HTML; GET /api/health → status ok. Пишется до правки main.py.
+History: —
+
+### P1: Ограничение памяти счётчика частоты
+Finding: P1, P3, confidence 6/10, docs/designs/vk-bot.md «Ограничение частоты»: «счётчик в памяти» без очистки; reviewer: /plan-eng-review (Performance).
+Plan baseline: счётчик на from_id, очистка не описана.
+Runtime evidence: unknown (кода нет); масштаб — десятки пользователей за тест.
+Comparison grid:
+| Choice | Current | A | B |
+|---|---|---|---|
+| P1 очистка счётчика | не описана | записи старше 60 с удаляются при каждой проверке; потолок 10 000 from_id | без очистки |
+Question: D10
+State: approved
+Actual answer: A) Очищать и ограничить (D10, ответ пользователя)
+Accepted scope: Записи счётчика старше 60 с удаляются при каждой проверке, потолок 10 000 from_id; тест на сброс через минуту.
+History: —
+
+Approval readiness: PASS — S1 (D4 → A), A1 (D5 → A), A2 (D6 → A), A3 (D7 → A), A4 (D8 → A), T1 (D9 → A), P1 (D10 → A); TODO: D11–D14 → A (TODOS.md). Scope: D2 → B, D3 → A.
+
+### Review findings
+**Scope Challenge:** `[P1] (confidence: 9/10) README.md:49` — README обещает `tests/`, тестов нет; бот зависит от контракта `analyze()` (analyzer.py:499-506). Disposition: accepted (D4).
+
+**1. Architecture**
+- `[P1] (confidence: 8/10)` docs/designs/vk-bot.md «Служебные сообщения» — скриншоты как основной ввод не обработаны. Accepted (D5 → инструкция + `event:"image"`).
+- `[P2] (confidence: 8/10)` «Поток обработки» п.4 — нет таймаута `messages.send`. Accepted (D6 → 5 с + 1 повтор).
+- `[P2] (confidence: 7/10)` «Ошибки» — битый `VK_GROUP_TOKEN` молча ломает все ответы. Accepted (D7 → `groups.getById` при старте).
+- `[P3] (confidence: 7/10)` «Поток обработки» п.2 — один воркер не закреплён. Accepted (D8 → `render.yaml`).
+
+**2. Code quality:** No issues found (два подозрения с уверенностью 4/10 — в приложении).
+
+**3. Tests:** фреймворк pytest, существующих тестов нет. `[P1] (confidence: 8/10) main.py:20-25` — регрессия сайта не покрыта. Accepted (D9 → `tests/test_api.py`). Диаграмма покрытия — в выводе ревью; Test Plan: `~/.gstack/projects/glanass1204-web-shchit-ot-moshennikov/root-claude-install-superpowers-plugin-fvzzh6-eng-review-test-plan-20261004-084206.md`.
+
+**4. Performance:** `[P3] (confidence: 6/10)` «Ограничение частоты» — счётчик без очистки. Accepted (D10 → 60 с, потолок 10 000). `analyze()` — regex по ≤ 10 000 символов на сообщение, LRU event_id ограничен 10 000; масштаб — десятки пользователей, нагрузочных проблем нет.
+
+**Outside voice:** unavailable — Codex не установлен, инструмента ожидания для запасного агента в сессии нет. Покрытие отсутствует, не засчитывается как clean.
+
+### NOT in scope
+- Telegram-бот — после сигнала спроса в VK (TODOS.md).
+- OCR скриншотов — по данным `event:"image"` (TODOS.md).
+- «Семейный щит» — после успеха 14-дневного теста (TODOS.md).
+- Хранилище метрик — при > 100 диалогах (TODOS.md).
+- ИИ-разбор в боте — противоречит модели «не храним текст».
+
+### What already exists
+- `analyzer.analyze()` (analyzer.py:412) — вся логика проверки, переиспользуется без изменений.
+- `analyzer.MAX_LEN` (analyzer.py:403) — лимит длины, переиспользуется для обрезки.
+- FastAPI-приложение `main.py` — бот подключается как `APIRouter`, деплой на Render прежний.
+- `httpx` уже в requirements.txt (используется ai_analyzer.py) — клиент для VK API, новых зависимостей нет.
+- pytest и httpx в requirements-dev.txt — тестовая инфраструктура объявлена, тестов нет.
+
+### Failure modes
+| Путь | Реальный сбой | Тест | Обработка | Видит пользователь |
+|---|---|---|---|---|
+| /vk/callback confirmation | неверная строка `VK_CONFIRMATION` | да | VK не подтверждает сервер | автор видит в настройках VK |
+| message_new → analyze | исключение в правилах | да | запасной ответ | ясный ответ «не получилось проверить» |
+| messages.send | VK не отвечает / ошибка | да | 5 с, 1 повтор, лог | ответ не придёт (редко), видно в логе |
+| токен VK | отозван | да | проверка при старте, /api/health | автор видит сразу после деплоя |
+| повторная доставка | VK повторил событие | да | dedup + random_id | один ответ |
+| холодный старт | free-инстанс спит | нет | текст «ответ в течение минуты» | задержка, обещание честное |
+Critical gaps: 0.
+
+### Worktree parallelization strategy
+| Step | Modules touched | Depends on |
+|---|---|---|
+| Регрессионные тесты | tests/ | — |
+| Ядро бота | bot_core | — |
+| VK-транспорт | vk_bot, main, render.yaml | Ядро бота, Регрессионные тесты |
+Lane A: Регрессионные тесты. Lane B: Ядро бота. Затем Lane C: VK-транспорт.
+Execution order: запустить A + B параллельно, слить, затем C. Conflict flags: `main.py` трогает только C.
+
+## Implementation Tasks
+Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or Codex; checkbox as you ship.
+
+- [ ] **T1 (P1, human: ~2h / CC: ~10min)** — tests — Регрессионные тесты `analyze()`
+  - Surfaced by: Scope Challenge — README.md:49, контракт analyzer.py:499-506
+  - Files: tests/test_analyzer.py
+  - Verify: `pytest tests/test_analyzer.py`
+- [ ] **T2 (P1, human: ~1h / CC: ~5min)** — tests — Регрессионные тесты сайта
+  - Surfaced by: Test review — main.py:20-25
+  - Files: tests/test_api.py
+  - Verify: `pytest tests/test_api.py`
+- [ ] **T3 (P1, human: ~1d / CC: ~20min)** — bot_core — classify / collect_text / format_reply по плану, включая скриншот-инструкцию (D5)
+  - Surfaced by: Architecture — A1; план «Формат ответа», «Сборка текста», «Служебные сообщения»
+  - Files: bot_core.py, tests/test_bot_core.py
+  - Verify: `pytest tests/test_bot_core.py`
+- [ ] **T4 (P1, human: ~1d / CC: ~20min)** — vk_bot — /vk/callback, dedup, лимит с очисткой (D10), таймаут 5 с (D6), проверка токена (D7)
+  - Surfaced by: Architecture — A2, A3; Performance — P1
+  - Files: vk_bot.py, main.py, tests/test_vk_bot.py
+  - Verify: `pytest tests/test_vk_bot.py tests/test_api.py`
+- [ ] **T5 (P3, human: ~15min / CC: ~3min)** — deploy — render.yaml с `--workers 1` и строка в README
+  - Surfaced by: Architecture — A4
+  - Files: render.yaml, README.md
+  - Verify: сверить стартовую команду в настройках Render
+
+### Completion summary
+- Step 0: Scope Challenge — scope reduced per recommendation
+- Architecture Review: 4 issues found
+- Code Quality Review: 0 issues found
+- Test Review: diagram produced, 1 gaps identified
+- Performance Review: 1 issues found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 4 items proposed to user
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, unavailable (CLI not installed; native fallback tool unavailable)
+- Parallelization: 3 lanes, 2 parallel / 1 sequential
+- Lake Score: 6/7
+
+### Suppressed findings (appendix)
+- `[P3] (confidence: 4/10)` сравнение `secret` без `hmac.compare_digest` — атака по времени через VK практически неосуществима.
+- `[P3] (confidence: 4/10)` рекурсия по вложенным `fwd_messages` без лимита глубины — VK ограничивает вложенность, текст режется по MAX_LEN.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
+| Outside Review | codex via `/plan-eng-review` | Independent 2nd opinion | 1 | unavailable | — |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES OPEN | 6 issues, 0 critical gaps |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+- **OUTSIDE COVERAGE:** codex, plan-review, unavailable (CLI not installed), no findings.
+- **VERDICT:** no reviews CLEAR; eng review required. Все 6 находок приняты в план — открытой работы по решениям нет, статус ISSUES OPEN означает принятые задачи T1–T5.
+
+NO UNRESOLVED DECISIONS
