@@ -420,11 +420,11 @@ Execution order: запустить A + B параллельно, слить, з
 ## Implementation Tasks
 Synthesized from this review's findings. Each task derives from a specific finding above. Run with Claude Code or Codex; checkbox as you ship.
 
-- [ ] **T1 (P1, human: ~2h / CC: ~10min)** — tests — Регрессионные тесты `analyze()`
+- [x] **T1 (P1, human: ~2h / CC: ~10min)** — tests — Регрессионные тесты `analyze()`
   - Surfaced by: Scope Challenge — README.md:49, контракт analyzer.py:499-506
   - Files: tests/test_analyzer.py
   - Verify: `pytest tests/test_analyzer.py`
-- [ ] **T2 (P1, human: ~1h / CC: ~5min)** — tests — Регрессионные тесты сайта
+- [x] **T2 (P1, human: ~1h / CC: ~5min)** — tests — Регрессионные тесты сайта
   - Surfaced by: Test review — main.py:20-25
   - Files: tests/test_api.py
   - Verify: `pytest tests/test_api.py`
