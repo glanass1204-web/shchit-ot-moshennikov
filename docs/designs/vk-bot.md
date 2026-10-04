@@ -428,7 +428,7 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: Test review — main.py:20-25
   - Files: tests/test_api.py
   - Verify: `pytest tests/test_api.py`
-- [ ] **T3 (P1, human: ~1d / CC: ~20min)** — bot_core — classify / collect_text / format_reply по плану, включая скриншот-инструкцию (D5)
+- [x] **T3 (P1, human: ~1d / CC: ~20min)** — bot_core — classify / collect_text / format_reply по плану, включая скриншот-инструкцию (D5)
   - Surfaced by: Architecture — A1; план «Формат ответа», «Сборка текста», «Служебные сообщения»
   - Files: bot_core.py, tests/test_bot_core.py
   - Verify: `pytest tests/test_bot_core.py`
