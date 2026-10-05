@@ -1,0 +1,19 @@
+{
+  "name": "Антимошенник",
+  "short_name": "Антимошенник",
+  "description": "Проверка подозрительных сообщений и ссылок на признаки мошенничества.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a1230",
+  "theme_color": "#0f1b3d",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
