@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,18 @@ app = FastAPI(title="Антимошенник", version="1.1.0", lifespan=lifesp
 app.include_router(vk_bot.router)
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 class CheckRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=MAX_LEN)
     use_ai: bool = False
@@ -37,7 +49,7 @@ def api_analyze(req: CheckRequest) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "vk": vk_bot.token_status}
+    return {"status": "ok", "app": "antimoshennik", "version": "1.1.0", "vk": vk_bot.token_status}
 
 
 @app.get("/", include_in_schema=False)
