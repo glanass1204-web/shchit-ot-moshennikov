@@ -41,6 +41,37 @@
     },
   ];
 
+  /* ---------- установка приложения ---------- */
+  let deferredInstall = null;
+  const installBtn = $("installBtn");
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstall = event;
+    if (installBtn) installBtn.hidden = false;
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener("click", async () => {
+      if (!deferredInstall) return;
+      deferredInstall.prompt();
+      try { await deferredInstall.userChoice; } catch (_) {}
+      deferredInstall = null;
+      installBtn.hidden = true;
+    });
+  }
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstall = null;
+    if (installBtn) installBtn.hidden = true;
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+
   /* ---------- тема ---------- */
   const root = document.documentElement;
   try {
@@ -128,7 +159,9 @@
       const data = await res.json();
       render(data, originalText);
     } catch (err) {
-      showError("Не удалось выполнить проверку. Проверьте подключение к интернету и попробуйте снова.");
+      showError(navigator.onLine
+        ? "Не удалось выполнить проверку. Сервис временно недоступен — не переходите по ссылкам и не переводите деньги, пока не проверите сообщение другим способом."
+        : "Нет подключения к интернету. Интерфейс приложения доступен, но для проверки сообщения нужен интернет.");
     } finally {
       btn.classList.remove("loading");
       btn.querySelector(".btn-label").textContent = "Проверить";
