@@ -41,6 +41,46 @@
     },
   ];
 
+  /* ---------- актуальные угрозы ---------- */
+  async function loadThreats() {
+    const grid = $("threatGrid");
+    const updated = $("threatsUpdated");
+    if (!grid) return;
+    try {
+      const res = await fetch("/api/threats", { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      const items = (data.items || []).slice(0, 4);
+      grid.replaceChildren();
+      items.forEach((item) => {
+        const article = document.createElement("article");
+        const dot = document.createElement("span");
+        dot.className = "threat-dot " + (item.status === "hot" ? "hot" : "warn");
+        const strong = document.createElement("strong");
+        strong.textContent = item.title;
+        const p = document.createElement("p");
+        p.textContent = item.summary;
+        const a = document.createElement("a");
+        a.className = "threat-source";
+        a.href = item.source_url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = "Источник: " + item.source_name;
+        article.append(dot, strong, p, a);
+        grid.append(article);
+      });
+      if (!items.length) {
+        grid.innerHTML = "<article><strong>Нет данных</strong><p>Новые подтверждённые схемы пока не загружены.</p></article>";
+      }
+      if (updated && data.updated_at) {
+        updated.textContent = "Обновлено: " + new Date(data.updated_at + "T00:00:00").toLocaleDateString("ru-RU") + ". Публикуем только подтверждённые схемы.";
+      }
+    } catch (_) {
+      if (updated) updated.textContent = "Не удалось обновить список угроз. Проверка сообщений продолжает работать.";
+    }
+  }
+  loadThreats();
+
   /* ---------- установка приложения ---------- */
   let deferredInstall = null;
   const installBtn = $("installBtn");
