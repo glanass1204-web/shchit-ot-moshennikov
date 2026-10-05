@@ -222,3 +222,88 @@ mark { background: var(--mark); color: inherit; border-bottom: 2px solid var(--m
 
 .ai-option { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; cursor: pointer; }
 .ai-option input { width: 20px; height: 20px; flex-shrink: 0; }
+
+
+/* ---------- Антимошенник: фирменные блоки ---------- */
+.eyebrow {
+  display: inline-flex;
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border));
+  border-radius: 999px;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.safety-flow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+.safety-flow div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+}
+.safety-flow strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--primary);
+}
+.safety-flow span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.privacy-alert {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--medium) 45%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--medium) 8%, var(--surface));
+  font-size: 13px;
+}
+.privacy-alert strong { font-size: 14px; }
+.privacy-alert span { color: var(--muted); }
+.result-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.share-btn,
+.result-actions .again-btn { margin: 0; }
+.share-btn {
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(100deg, var(--primary), var(--primary-2));
+  color: var(--primary-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.share-btn:hover { filter: brightness(1.04); }
+.share-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .safety-flow { grid-template-columns: 1fr; }
+  .safety-flow div {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    align-items: center;
+    gap: 8px;
+  }
+  .safety-flow strong { margin: 0; }
+  .result-actions { grid-template-columns: 1fr; }
+}
