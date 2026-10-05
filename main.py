@@ -54,27 +54,27 @@ def health() -> dict:
 
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
-    return FileResponse(BASE / "index.html")
+    return FileResponse(BASE / "index.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
 @app.get("/static/style.css", include_in_schema=False)
 def css() -> FileResponse:
-    return FileResponse(BASE / "style.css", media_type="text/css")
+    return FileResponse(BASE / "style.css", media_type="text/css", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/static/app.js", include_in_schema=False)
 def js() -> FileResponse:
-    return FileResponse(BASE / "app.js", media_type="application/javascript")
+    return FileResponse(BASE / "app.js", media_type="application/javascript", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
 def manifest() -> FileResponse:
-    return FileResponse(BASE / "manifest.webmanifest", media_type="application/manifest+json")
+    return FileResponse(BASE / "manifest.webmanifest", media_type="application/manifest+json", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/sw.js", include_in_schema=False)
 def service_worker() -> FileResponse:
-    return FileResponse(BASE / "sw.js", media_type="application/javascript")
+    return FileResponse(BASE / "sw.js", media_type="application/javascript", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
 @app.get("/static/icon.svg", include_in_schema=False)
