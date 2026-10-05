@@ -12,6 +12,7 @@
   const result = $("result");
   const MAX = 10000;
   const ARC = 251.33; // длина дуги шкалы (π·80)
+  let lastResult = null;
 
   const EXAMPLES = [
     {
@@ -135,6 +136,27 @@
     }
   });
 
+  $("shareBtn").addEventListener("click", async () => {
+    if (!lastResult) return;
+    const d = lastResult;
+    const topSigns = (d.signs || []).filter(s => s.score >= 10).slice(0, 3).map(s => "• " + s.title);
+    const shareText = [
+      "Антимошенник — результат проверки",
+      d.label + ": " + d.verdict,
+      topSigns.length ? "\nНайдены признаки:\n" + topSigns.join("\n") : "\nЯвных признаков мошенничества не найдено.",
+      "\nПроверь, прежде чем поверить."
+    ].join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Антимошенник", text: shareText, url: location.origin });
+      } else {
+        await navigator.clipboard.writeText(shareText + "\n" + location.origin);
+        $("shareBtn").textContent = "Скопировано";
+        setTimeout(() => $("shareBtn").textContent = "Поделиться результатом", 1600);
+      }
+    } catch (_) {}
+  });
+
   $("againBtn").addEventListener("click", () => {
     result.hidden = true;
     input.value = "";
@@ -159,6 +181,7 @@
   }
 
   function render(data, originalText) {
+    lastResult = data;
     result.hidden = false;
     const ai = data.ai;
     $("aiCard").hidden = !ai;
