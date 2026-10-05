@@ -414,3 +414,13 @@ mark { background: var(--mark); color: inherit; border-bottom: 2px solid var(--m
   .threat-grid { grid-template-columns: 1fr; }
   .install-btn { display: none !important; }
 }
+
+.threat-source {
+  display: inline-block;
+  margin-top: 9px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.threat-source:hover { text-decoration: underline; }
