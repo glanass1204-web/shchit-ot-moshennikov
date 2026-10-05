@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import json
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
@@ -18,7 +19,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Антимошенник", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title="Антимошенник", version="1.2.0", lifespan=lifespan)
 app.include_router(vk_bot.router)
 
 
@@ -49,7 +50,16 @@ def api_analyze(req: CheckRequest) -> dict:
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "app": "antimoshennik", "version": "1.1.0", "vk": vk_bot.token_status}
+    return {"status": "ok", "app": "antimoshennik", "version": "1.2.0", "vk": vk_bot.token_status}
+
+
+@app.get("/api/threats")
+def current_threats() -> dict:
+    try:
+        with (BASE / "threats.json").open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {"updated_at": None, "items": []}
 
 
 @app.get("/", include_in_schema=False)
