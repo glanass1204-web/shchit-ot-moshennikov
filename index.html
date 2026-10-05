@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icon.svg">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -25,9 +27,12 @@
         </svg>
         <span>Антимошенник</span>
       </div>
-      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему">
+      <div class="header-actions">
+        <button class="install-btn" id="installBtn" type="button" hidden>Установить</button>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>
-      </button>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -84,6 +89,50 @@
         </p>
         <p class="error" id="error" role="alert" hidden></p>
       </form>
+    </section>
+
+    <section class="home-sections" aria-label="Полезные разделы">
+      <section class="card section-card">
+        <div class="section-kicker">АКТУАЛЬНЫЕ УГРОЗЫ</div>
+        <h2>Что чаще всего используют мошенники</h2>
+        <div class="threat-grid">
+          <article><span class="threat-dot hot"></span><strong>Срочность и страх</strong><p>«Сейчас потеряете деньги», «аккаунт заблокируют», «идёт проверка».</p></article>
+          <article><span class="threat-dot hot"></span><strong>Коды и доступ</strong><p>Просят код из СМС, пароль, установить приложение или включить удалённый доступ.</p></article>
+          <article><span class="threat-dot warn"></span><strong>Поддельные ссылки</strong><p>Доставка, штраф, выигрыш, оплата, «подтверждение аккаунта».</p></article>
+          <article><span class="threat-dot warn"></span><strong>Подмена близких</strong><p>«Новый номер», «попал в беду», срочная просьба перевести деньги.</p></article>
+        </div>
+        <p class="section-note">Список — ориентир, а не статистика. Мошенники постоянно меняют легенды, поэтому важнее проверять признаки.</p>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-kicker">ПОМОЖЕМ ДРУГ ДРУГУ</div>
+        <h2>Увидели новую схему?</h2>
+        <p>Пришлите подозрительное сообщение или опишите ситуацию в наше сообщество VK. Личные данные перед отправкой лучше скрыть.</p>
+        <a class="primary-link" href="https://vk.ru/shchit_ot_moshennikov" target="_blank" rel="noopener noreferrer">Прислать схему в VK</a>
+        <p class="microcopy">Один человек заметил — тысячи могут быть предупреждены.</p>
+      </section>
+
+      <section class="card section-card sos-card">
+        <div class="section-kicker">SOS</div>
+        <h2>Если деньги уже переведены</h2>
+        <ol class="sos-list">
+          <li><strong>Сразу свяжитесь с банком</strong><span>Попросите остановить операцию, заблокировать карту или доступ.</span></li>
+          <li><strong>Смените пароли</strong><span>Особенно если сообщали коды, устанавливали приложения или давали доступ к телефону.</span></li>
+          <li><strong>Сохраните доказательства</strong><span>Переписку, чеки, номера телефонов, ссылки и время звонков.</span></li>
+          <li><strong>Обратитесь в полицию</strong><span>Не удаляйте переписку до фиксации всех данных.</span></li>
+        </ol>
+      </section>
+
+      <section class="card section-card">
+        <div class="section-kicker">КАК МЫ РАБОТАЕМ</div>
+        <h2>Проверка помогает заметить признаки, но не выносит приговор</h2>
+        <p>«Антимошенник» анализирует текст и ссылки по набору правил, а при включённой функции ИИ — дополнительно объясняет смысл сообщения. Низкий риск не означает, что отправитель проверен.</p>
+        <div class="trust-row">
+          <span>✓ Без регистрации</span>
+          <span>✓ Текст не сохраняется приложением</span>
+          <span>✓ Можно работать без ИИ</span>
+        </div>
+      </section>
     </section>
 
     <section id="result" class="result" hidden aria-live="polite">
