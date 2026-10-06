@@ -20,6 +20,13 @@ def test_analyze_rejects_empty_text():
     assert client.post("/api/analyze", json={"text": ""}).status_code == 422
 
 
+def test_login_page_serves_html():
+    resp = client.get("/login")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert "Щит от мошенников" in resp.text
+
+
 def test_index_serves_html():
     resp = client.get("/")
     assert resp.status_code == 200
