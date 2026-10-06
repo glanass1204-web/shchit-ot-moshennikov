@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Щит от мошенников — вход</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: одна карточка по центру; тёмное «лезвие» (skewX) ездит по ней одним translateX,
+   а его содержимое едет обратно — поэтому текст стоит в координатах карточки и «режется» швом. */
+:root {
+  --night: #0a1a17;      /* фон страницы */
+  --pine: #0f3a31;       /* лезвие */
+  --pine-deep: #082520;
+  --paper: #f3eee3;      /* панель формы */
+  --ink: #1d2a26;        /* текст на бумаге */
+  --ink-soft: #6c7470;
+  --gold: #d9a24a;       /* акцент и швы */
+  --gold-soft: #e9c98d;
+  --mist: #c8d3cd;       /* текст на тёмном */
+  --error: #b5462f;
+  --ok: #2f7a5c;
+
+  --font-display: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-ui: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  --rake: 12deg;
+  --ease: cubic-bezier(.7, 0, .2, 1);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #12352d 0%, transparent 60%),
+    var(--night);
+  color: var(--mist);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  padding-inline: 16px;
+  padding-block: 56px 48px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Шапка ---------- */
+.intro { text-align: center; display: grid; gap: 10px; margin: 0 auto 36px; max-width: 640px; }
+.eyebrow {
+  font-size: 11px; letter-spacing: .32em; text-transform: uppercase; color: #8fa39b;
+}
+.intro h1 {
+  margin: 0; font-weight: 700; font-size: clamp(28px, 5vw, 42px); line-height: 1.08;
+  color: #f4f1ea; text-wrap: balance; letter-spacing: -.01em;
+}
+.intro h1 span { display: block; color: var(--gold); }
+.intro h1 { animation: rise .9s var(--ease) both; }
+.eyebrow { animation: rise .9s .05s var(--ease) both; }
+
+.switch {
+  justify-self: center; margin-top: 14px;
+  display: inline-grid; grid-template-columns: 1fr 1fr; position: relative;
+  padding: 4px; border-radius: 999px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(217,162,74,.25);
+  animation: rise .9s .12s var(--ease) both;
+}
+.switch button {
+  position: relative; z-index: 1; border: 0; background: none; cursor: pointer;
+  font: 600 13px var(--font-ui); color: var(--mist); padding: 8px 18px; border-radius: 999px;
+  transition: color .4s;
+}
+.switch button[aria-pressed="true"] { color: var(--pine-deep); }
+.switch::before {
+  content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
+  border-radius: 999px; background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+  transition: transform .7s var(--ease);
+}
+.switch[data-mode="signup"]::before { transform: translateX(100%); }
+
+/* ---------- Карточка ---------- */
+.auth {
+  container-type: inline-size;
+  --bx: 52; --bw: 60;
+  position: relative; overflow: hidden; isolation: isolate;
+  max-width: 940px; margin: 0 auto;
+  min-height: 560px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--paper); color: var(--ink);
+  border-radius: 22px;
+  box-shadow: 0 40px 80px -30px rgba(0,0,0,.7), 0 0 0 1px rgba(217,162,74,.18);
+  animation: rise 1s .18s var(--ease) both;
+}
+.auth::after { /* лёгкая бумажная фактура */
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(800px 400px at 0% 100%, rgba(217,162,74,.10), transparent 60%);
+}
+
+/* ---------- Формы ---------- */
+.pane {
+  grid-row: 1; display: flex; flex-direction: column; justify-content: center;
+  gap: 22px; padding: 56px 10cqw 48px 7cqw; min-width: 0;
+  visibility: hidden;
+}
+.pane--signin { grid-column: 1; }
+.pane--signup { grid-column: 2; padding: 56px 7cqw 48px 10cqw; }
+.pane.is-on { visibility: visible; }
+.pane > * { opacity: 0; transform: translateY(12px); }
+.pane.is-on > * {
+  opacity: 1; transform: none;
+  transition: opacity .6s var(--ease), transform .6s var(--ease);
+  transition-delay: calc(var(--i, 0) * 60ms + 80ms);
+}
+
+.pane__lede { display: none; }
+.pane h2 {
+  margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.01em; color: var(--ink);
+  position: relative; padding-bottom: 12px;
+}
+.pane h2::after {
+  content: ""; position: absolute; left: 0; bottom: 0; width: 48px; height: 3px; border-radius: 2px;
+  background: var(--gold); transform-origin: left; transform: scaleX(0);
+  transition: transform .8s .35s var(--ease);
+}
+.pane.is-on h2::after { transform: scaleX(1); }
+
+.form { display: grid; gap: 22px; }
+.field { display: grid; gap: 4px; position: relative; }
+.field label { font-size: 12px; font-weight: 600; color: var(--ink-soft); letter-spacing: .01em; }
+.field__row { position: relative; display: flex; align-items: center; }
+.field input {
+  width: 100%; border: 0; background: transparent; outline: none;
+  font: 500 16px var(--font-ui); color: var(--ink);
+  padding: 8px 34px 9px 0;
+  border-bottom: 1px solid #cfc8b8;
+}
+.field__line {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gold);
+  transform: scaleX(0); transform-origin: left; transition: transform .5s var(--ease);
+}
+.field input:focus ~ .field__line { transform: scaleX(1); }
+.field.has-error input { border-bottom-color: var(--error); }
+.field.has-error .field__line { background: var(--error); }
+.field__icon {
+  position: absolute; right: 0; width: 28px; height: 28px; display: grid; place-items: center;
+  color: #9a9f97; border: 0; background: none; padding: 0; border-radius: 6px;
+}
+button.field__icon { cursor: pointer; }
+button.field__icon:hover { color: var(--ink); }
+.field__icon svg { width: 18px; height: 18px; }
+.field__msg { min-height: 16px; font-size: 12px; color: var(--ink-soft); }
+.field.has-error .field__msg { color: var(--error); }
+
+.meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 2px; }
+.meter i { height: 3px; border-radius: 2px; background: #e0d9ca; transition: background .4s; }
+.meter[data-score="1"] i:nth-child(-n+1),
+.meter[data-score="2"] i:nth-child(-n+2) { background: var(--gold); }
+.meter[data-score="3"] i:nth-child(-n+3),
+.meter[data-score="4"] i:nth-child(-n+4) { background: var(--ok); }
+
+.row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
+.check { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-soft); cursor: pointer; }
+.check input { accent-color: var(--pine); width: 16px; height: 16px; margin: 0; }
+.link {
+  border: 0; background: none; padding: 0; cursor: pointer; font: 600 13px var(--font-ui);
+  color: var(--ink); text-decoration: underline; text-decoration-color: var(--gold);
+  text-underline-offset: 4px; text-decoration-thickness: 2px;
+}
+.link:hover { color: var(--pine); }
+
+.btn {
+  position: relative; overflow: hidden; border: 0; cursor: pointer;
+  height: 52px; border-radius: 999px;
+  font: 700 15px var(--font-ui); letter-spacing: .01em; color: #f4f1ea;
+  background: linear-gradient(180deg, #17503f, var(--pine));
+  box-shadow: 0 14px 28px -14px rgba(15,58,49,.8), inset 0 1px 0 rgba(255,255,255,.12);
+  transition: transform .25s var(--ease), box-shadow .25s;
+}
+.btn::after { /* блик */
+  content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(233,201,141,.35), transparent);
+  transform: skewX(-20deg); transition: left .8s var(--ease);
+}
+.btn:hover::after { left: 120%; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(1px); }
+.btn.is-busy { pointer-events: none; color: transparent; }
+.btn.is-busy::before {
+  content: ""; position: absolute; inset: 0; margin: auto; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(244,241,234,.35); border-top-color: var(--gold-soft); animation: spin .8s linear infinite;
+}
+.btn.is-done { background: linear-gradient(180deg, #2c7a5a, #1f5d45); }
+
+.note { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.note .link { font-size: 13px; }
+.status { margin: 0; min-height: 18px; font-size: 13px; font-weight: 600; color: var(--ok); }
+.status.is-error { color: var(--error); }
+
+/* ---------- Лезвие ---------- */
+.band {
+  position: absolute; top: 0; bottom: 0; left: 0; z-index: 2;
+  width: calc(var(--bw) * 1cqw);
+  transform: translateX(calc(var(--bx) * 1cqw)) skewX(var(--rake));
+  overflow: hidden; background: var(--pine);
+  will-change: transform, width;
+}
+.band__inner {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 100cqw;
+  transform: translateX(calc(var(--bx) * -1cqw)) skewX(calc(-1 * var(--rake)));
+  display: grid; grid-template-columns: 1fr 1fr;
+  background:
+    radial-gradient(600px 420px at 85% 15%, rgba(217,162,74,.14), transparent 60%),
+    radial-gradient(700px 500px at 10% 95%, rgba(10,40,34,.9), transparent 70%),
+    linear-gradient(160deg, #134a3d 0%, var(--pine) 45%, var(--pine-deep) 100%);
+  will-change: transform;
+}
+.band__edge {
+  position: absolute; top: -2%; bottom: -2%; width: 2px; z-index: 3;
+  background: linear-gradient(180deg, transparent, var(--gold-soft) 20%, var(--gold) 60%, transparent);
+  box-shadow: 0 0 18px 2px rgba(217,162,74,.45);
+}
+.band__edge--l { left: 0; }
+.band__edge--r { right: 0; }
+
+.welcome {
+  align-self: center; padding: 0 7cqw 0 9cqw; color: var(--mist); display: grid; gap: 14px;
+}
+.welcome--signup { grid-column: 1; padding: 0 12cqw 0 6cqw; }
+.welcome--signin { grid-column: 2; }
+.brand { font-size: 12px; font-weight: 700; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); }
+.welcome h3 {
+  margin: 0; font-family: var(--font-display); font-weight: 500;
+  font-size: clamp(38px, 5.6cqw, 56px); line-height: .98; color: #f4f1ea; text-wrap: balance;
+}
+.welcome h3 em { color: var(--gold-soft); font-style: italic; }
+.welcome p { margin: 0; font-size: 14px; line-height: 1.6; max-width: 34ch; color: #a9bab2; }
+.band__mark { display: none; }
+
+.caption {
+  text-align: center; margin: 22px auto 0; max-width: 60ch; font-size: 13px; color: #7f938b;
+  animation: rise 1s .3s var(--ease) both;
+}
+
+/* ---------- Телефон ---------- */
+@media (max-width: 720px) {
+  body { padding-block: 32px 32px; }
+  .auth { grid-template-columns: 1fr; min-height: 0; border-radius: 18px; }
+  .pane, .pane--signup { grid-column: 1; grid-row: 1; padding: 36px 24px 32px; gap: 18px; }
+  .pane__lede { display: grid; gap: 6px; }
+  .pane__lede .brand { font-size: 11px; }
+  .pane__lede strong {
+    font-family: var(--font-display); font-weight: 500; font-size: 32px; line-height: 1; color: var(--pine);
+  }
+  .pane__lede strong em { color: #a8752a; }
+  .welcome { display: none; }
+  .band__inner { grid-template-columns: 1fr; place-items: center; }
+  .band__mark {
+    display: block; font-family: var(--font-display); font-style: italic; font-size: 64px; color: var(--gold-soft);
+    letter-spacing: .02em;
+  }
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.field input:focus-visible { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <div class="eyebrow">Компонент · 91</div>
+  <h1>Вход и регистрация<span>с анимацией</span></h1>
+  <div class="switch" id="switch" data-mode="signin" role="group" aria-label="Режим">
+    <button type="button" id="sw-signin" data-go="signin" aria-pressed="true">Вход</button>
+    <button type="button" id="sw-signup" data-go="signup" aria-pressed="false">Регистрация</button>
+  </div>
+</header>
+
+<main class="auth" id="auth" data-mode="signin">
+
+  <!-- Вход -->
+  <section class="pane pane--signin is-on" id="pane-signin" aria-label="Вход">
+    <div class="pane__lede" style="--i:0"><span class="brand">Щит от мошенников</span><strong>С возвращением<em>.</em></strong></div>
+    <h2 style="--i:1">Вход</h2>
+    <form class="form" id="form-signin" novalidate style="--i:2">
+      <div class="field">
+        <label for="si-login">Логин или почта</label>
+        <div class="field__row">
+          <input id="si-login" name="login" autocomplete="username" required>
+          <span class="field__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
+          <span class="field__line"></span>
+        </div>
+        <div class="field__msg"></div>
+      </div>
+      <div class="field">
+        <label for="si-pass">Пароль</label>
+        <div class="field__row">
+          <input id="si-pass" name="password" type="password" autocomplete="current-password" required>
+          <button type="button" class="field__icon js-eye" aria-label="Показать пароль"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <span class="field__line"></span>
+        </div>
+        <div class="field__msg"></div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="si-keep" checked> Не выходить</label>
+        <button type="button" class="link" id="forgot">Забыли пароль?</button>
+      </div>
+      <button class="btn" type="submit">Войти</button>
+      <p class="status" role="status"></p>
+    </form>
+    <p class="note" style="--i:3">Впервые в «Щите от мошенников»? <button type="button" class="link" data-go="signup">Создать аккаунт</button></p>
+  </section>
+
+  <!-- Регистрация -->
+  <section class="pane pane--signup" id="pane-signup" aria-label="Регистрация" inert>
+    <div class="pane__lede" style="--i:0"><span class="brand">Щит от мошенников</span><strong>Начните <em>под защитой.</em></strong></div>
+    <h2 style="--i:1">Создать аккаунт</h2>
+    <form class="form" id="form-signup" novalidate style="--i:2">
+      <div class="field">
+        <label for="su-name">Имя и фамилия</label>
+        <div class="field__row">
+          <input id="su-name" name="name" autocomplete="name" required>
+          <span class="field__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
+          <span class="field__line"></span>
+        </div>
+        <div class="field__msg"></div>
+      </div>
+      <div class="field">
+        <label for="su-email">Электронная почта</label>
+        <div class="field__row">
+          <input id="su-email" name="email" type="email" autocomplete="email" required>
+          <span class="field__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+          <span class="field__line"></span>
+        </div>
+        <div class="field__msg"></div>
+      </div>
+      <div class="field">
+        <label for="su-pass">Пароль</label>
+        <div class="field__row">
+          <input id="su-pass" name="password" type="password" autocomplete="new-password" required>
+          <button type="button" class="field__icon js-eye" aria-label="Показать пароль"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <span class="field__line"></span>
+        </div>
+        <div class="meter" id="meter" data-score="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="field__msg">Минимум 8 символов.</div>
+      </div>
+      <button class="btn" type="submit">Создать аккаунт</button>
+      <p class="status" role="status"></p>
+    </form>
+    <p class="note" style="--i:3">Уже есть аккаунт? <button type="button" class="link" data-go="signin">Войти</button></p>
+  </section>
+
+  <!-- Одно лезвие, два светящихся шва -->
+  <div class="band" aria-hidden="true">
+    <div class="band__inner">
+      <div class="welcome welcome--signup">
+        <span class="brand">Щит от мошенников</span>
+        <h3>Начните<br><em>под защитой.</em></h3>
+        <p>Один аккаунт, чтобы проверять подозрительные сообщения и ссылки на любом устройстве.</p>
+      </div>
+      <div class="welcome welcome--signin">
+        <span class="brand">Щит от мошенников</span>
+        <h3>С возвращением<em>.</em></h3>
+        <p>История проверок и сохранённые предупреждения — ровно там, где вы их оставили.</p>
+      </div>
+      <span class="band__mark">Щит</span>
+    </div>
+    <span class="band__edge band__edge--l"></span>
+    <span class="band__edge band__edge--r"></span>
+  </div>
+</main>
+
+<p class="caption">Переключите режим — лезвие пересечёт карточку. Обе формы проверяют ввод по-настоящему; данные никуда не отправляются.</p>
+
+<script>
+(() => {
+  const auth = document.getElementById('auth');
+  const sw = document.getElementById('switch');
+  const panes = { signin: document.getElementById('pane-signin'), signup: document.getElementById('pane-signup') };
+  const narrow = matchMedia('(max-width: 720px)');
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Положения лезвия в cqw (процентах ширины карточки): x — левый край, w — ширина.
+  // s — насколько скос (12°) выносит углы лезвия за его край, тоже в cqw.
+  const slant = () => Math.tan(12 * Math.PI / 180) * auth.offsetHeight / 2 / auth.offsetWidth * 100;
+  const rest = () => {
+    const s = slant();
+    return narrow.matches
+      ? { signin: { x: 102 + s, w: 60 }, signup: { x: -62 - s, w: 60 } }   // на телефоне лезвие ждёт за краем
+      : { signin: { x: 52, w: 60 },      signup: { x: -12, w: 60 } };
+  };
+  const cover = () => { const s = slant(); return { x: -2 - s, w: 104 + 2 * s }; };  // закрывает всю карточку
+  const DUR = 1150;
+
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const mix = (a, b, t) => a + (b - a) * t;
+  const set = p => { auth.style.setProperty('--bx', p.x.toFixed(3)); auth.style.setProperty('--bw', p.w.toFixed(3)); };
+
+  let mode = 'signin', raf = 0, busy = false;
+  set(rest()[mode]);
+
+  function show(next) {
+    const other = next === 'signin' ? 'signup' : 'signin';
+    panes[other].classList.remove('is-on'); panes[other].inert = true;
+    panes[next].classList.add('is-on');     panes[next].inert = false;
+  }
+
+  function go(next) {
+    if (next === mode || busy) return;
+    const from = rest()[mode], to = rest()[next];
+    mode = next;
+    auth.dataset.mode = sw.dataset.mode = next;
+    sw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.go === next)));
+
+    if (still.matches) { show(next); set(to); return; }
+
+    // Ведущий край уходит первым, ведомый догоняет: from → cover → (пауза) → to
+    const c = cover();
+    const keys = [[0, from], [.44, c], [.56, c], [1, to]];
+    let swapped = false, t0 = 0;
+    busy = true;
+    cancelAnimationFrame(raf);
+    const step = now => {
+      if (!t0) t0 = now;
+      const t = Math.min(1, (now - t0) / DUR);
+      let i = 0; while (t > keys[i + 1][0]) i++;
+      const [ta, a] = keys[i], [tb, b] = keys[i + 1];
+      const k = ease((t - ta) / (tb - ta || 1));
+      set({ x: mix(a.x, b.x, k), w: mix(a.w, b.w, k) });
+      if (!swapped && t >= .5) { swapped = true; show(next); }  // пока лезвие закрывает карточку
+      if (t < 1) raf = requestAnimationFrame(step);
+      else { busy = false; focusFirst(next); }
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  function focusFirst(m) {
+    if (matchMedia('(hover: hover)').matches) panes[m].querySelector('input')?.focus({ preventScroll: true });
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-go]');
+    if (b) go(b.dataset.go);
+  });
+  addEventListener('resize', () => { if (!busy) set(rest()[mode]); });
+
+  // Показать/скрыть пароль
+  document.querySelectorAll('.js-eye').forEach(btn => btn.addEventListener('click', () => {
+    const input = btn.parentElement.querySelector('input');
+    const hidden = input.type === 'password';
+    input.type = hidden ? 'text' : 'password';
+    btn.setAttribute('aria-label', hidden ? 'Скрыть пароль' : 'Показать пароль');
+    btn.style.color = hidden ? 'var(--pine)' : '';
+  }));
+
+  // ---------- Проверка форм ----------
+  const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const rules = {
+    'si-login': v => v.trim().length >= 3 || 'Введите логин или почту — минимум 3 символа.',
+    'si-pass':  v => v.length >= 8 || 'Пароль не короче 8 символов.',
+    'su-name':  v => /\S+\s+\S+/.test(v.trim()) || 'Укажите имя и фамилию через пробел.',
+    'su-email': v => EMAIL.test(v.trim()) || 'Почта должна выглядеть как name@example.ru.',
+    'su-pass':  v => v.length >= 8 || 'Минимум 8 символов — сейчас ' + v.length + '.',
+  };
+  const hints = { 'su-pass': 'Минимум 8 символов.' };
+
+  function check(input, quiet) {
+    const field = input.closest('.field'), msg = field.querySelector('.field__msg');
+    const res = rules[input.id](input.value);
+    const ok = res === true;
+    if (!quiet || ok) {
+      field.classList.toggle('has-error', !ok);
+      msg.textContent = ok ? (hints[input.id] || '') : res;
+    }
+    return ok;
+  }
+
+  Object.keys(rules).forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('blur', () => { if (el.value) check(el); });
+    el.addEventListener('input', () => { if (el.closest('.field').classList.contains('has-error')) check(el); });
+  });
+
+  const meter = document.getElementById('meter');
+  document.getElementById('su-pass').addEventListener('input', e => {
+    const v = e.target.value;
+    let s = 0;
+    if (v.length >= 8) s++;
+    if (/[a-zа-яё]/.test(v) && /[A-ZА-ЯЁ]/.test(v)) s++;
+    if (/\d/.test(v)) s++;
+    if (/[^\wа-яё]/i.test(v) || v.length >= 14) s++;
+    meter.dataset.score = v ? Math.max(1, s) : 0;
+  });
+
+  function wire(formId, done) {
+    const form = document.getElementById(formId);
+    const status = form.querySelector('.status');
+    const btn = form.querySelector('.btn');
+    const label = btn.textContent;
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const inputs = [...form.querySelectorAll('input[id]')].filter(i => rules[i.id]);
+      const bad = inputs.filter(i => !check(i));
+      status.classList.remove('is-error');
+      if (bad.length) {
+        status.textContent = '';
+        bad[0].focus();
+        bad[0].closest('.field').animate(
+          [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }],
+          { duration: 380, easing: 'ease-out' });
+        return;
+      }
+      btn.classList.add('is-busy'); status.textContent = '';
+      setTimeout(() => {
+        btn.classList.remove('is-busy'); btn.classList.add('is-done');
+        btn.textContent = 'Готово ✓';
+        status.textContent = done(form);
+        setTimeout(() => { btn.classList.remove('is-done'); btn.textContent = label; }, 2400);
+      }, 900);
+    });
+  }
+  wire('form-signin', f => 'Вход выполнен. Это демо — данные никуда не отправлены.');
+  wire('form-signup', f => 'Аккаунт для ' + f.querySelector('#su-name').value.trim().split(/\s+/)[0] + ' создан (демо).');
+
+  document.getElementById('forgot').addEventListener('click', () => {
+    const login = document.getElementById('si-login');
+    const status = document.querySelector('#form-signin .status');
+    if (!check(login)) { login.focus(); status.textContent = ''; return; }
+    status.classList.remove('is-error');
+    status.textContent = 'Ссылка для сброса пароля отправлена бы на ' + login.value.trim() + ' (демо).';
+  });
+
+  // Стрелки ←/→ переключают режим, когда фокус не в поле ввода
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input')) return;
+    if (e.key === 'ArrowRight') go('signup');
+    if (e.key === 'ArrowLeft') go('signin');
+  });
+})();
+</script>
+</body>
+</html>

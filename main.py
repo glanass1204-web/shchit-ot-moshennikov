@@ -67,6 +67,11 @@ def index() -> FileResponse:
     return FileResponse(BASE / "index.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
+@app.get("/login", include_in_schema=False)
+def login_page() -> FileResponse:
+    return FileResponse(BASE / "verso" / "index.html", headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/static/style.css", include_in_schema=False)
 def css() -> FileResponse:
     return FileResponse(BASE / "style.css", media_type="text/css", headers={"Cache-Control": "no-cache"})
