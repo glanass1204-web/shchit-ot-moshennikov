@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>VERSO — вход и регистрация</title>
+<title>Щит от мошенников — вход</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap">
@@ -228,7 +228,7 @@ button.field__icon:hover { color: var(--ink); }
 }
 .welcome--signup { grid-column: 1; padding: 0 12cqw 0 6cqw; }
 .welcome--signin { grid-column: 2; }
-.brand { font-size: 12px; font-weight: 700; letter-spacing: .4em; color: var(--gold); }
+.brand { font-size: 12px; font-weight: 700; letter-spacing: .28em; text-transform: uppercase; color: var(--gold); }
 .welcome h3 {
   margin: 0; font-family: var(--font-display); font-weight: 500;
   font-size: clamp(38px, 5.6cqw, 56px); line-height: .98; color: #f4f1ea; text-wrap: balance;
@@ -287,7 +287,7 @@ button.field__icon:hover { color: var(--ink); }
 
   <!-- Вход -->
   <section class="pane pane--signin is-on" id="pane-signin" aria-label="Вход">
-    <div class="pane__lede" style="--i:0"><span class="brand">VERSO</span><strong>С возвращением<em>.</em></strong></div>
+    <div class="pane__lede" style="--i:0"><span class="brand">Щит от мошенников</span><strong>С возвращением<em>.</em></strong></div>
     <h2 style="--i:1">Вход</h2>
     <form class="form" id="form-signin" novalidate style="--i:2">
       <div class="field">
@@ -315,12 +315,12 @@ button.field__icon:hover { color: var(--ink); }
       <button class="btn" type="submit">Войти</button>
       <p class="status" role="status"></p>
     </form>
-    <p class="note" style="--i:3">Впервые в VERSO? <button type="button" class="link" data-go="signup">Создать аккаунт</button></p>
+    <p class="note" style="--i:3">Впервые в «Щите от мошенников»? <button type="button" class="link" data-go="signup">Создать аккаунт</button></p>
   </section>
 
   <!-- Регистрация -->
   <section class="pane pane--signup" id="pane-signup" aria-label="Регистрация" inert>
-    <div class="pane__lede" style="--i:0"><span class="brand">VERSO</span><strong>Начните <em>первую страницу.</em></strong></div>
+    <div class="pane__lede" style="--i:0"><span class="brand">Щит от мошенников</span><strong>Начните <em>под защитой.</em></strong></div>
     <h2 style="--i:1">Создать аккаунт</h2>
     <form class="form" id="form-signup" novalidate style="--i:2">
       <div class="field">
@@ -361,16 +361,16 @@ button.field__icon:hover { color: var(--ink); }
   <div class="band" aria-hidden="true">
     <div class="band__inner">
       <div class="welcome welcome--signup">
-        <span class="brand">VERSO</span>
-        <h3>Начните<br><em>первую страницу.</em></h3>
-        <p>Один аккаунт для каждой доски, каждого черновика и каждого вашего устройства.</p>
+        <span class="brand">Щит от мошенников</span>
+        <h3>Начните<br><em>под защитой.</em></h3>
+        <p>Один аккаунт, чтобы проверять подозрительные сообщения и ссылки на любом устройстве.</p>
       </div>
       <div class="welcome welcome--signin">
-        <span class="brand">VERSO</span>
+        <span class="brand">Щит от мошенников</span>
         <h3>С возвращением<em>.</em></h3>
-        <p>Ваши доски, черновики и люди — ровно там, где вы их оставили.</p>
+        <p>История проверок и сохранённые предупреждения — ровно там, где вы их оставили.</p>
       </div>
-      <span class="band__mark">Verso</span>
+      <span class="band__mark">Щит</span>
     </div>
     <span class="band__edge band__edge--l"></span>
     <span class="band__edge band__edge--r"></span>
