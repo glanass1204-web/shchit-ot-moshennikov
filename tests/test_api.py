@@ -27,6 +27,13 @@ def test_login_page_serves_html():
     assert "Щит от мошенников" in resp.text
 
 
+def test_immersive_page_serves_html():
+    resp = client.get("/3d")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert "Щит от мошенников" in resp.text
+
+
 def test_index_serves_html():
     resp = client.get("/")
     assert resp.status_code == 200

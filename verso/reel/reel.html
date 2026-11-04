@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Щит от мошенников — ролик</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@500;700&display=swap">
+<style>
+/* Кадр 1080×1920: строка «браузера», живая страница во фрейме, три панели кода. */
+:root {
+  --night: #070f0d; --bar: #0c1714; --line: #16241f;
+  --mist: #c8d3cd; --dim: #5d6f68; --gold: #d9a24a;
+  --html: #e86b8a; --css: #6aa6ff; --js: #f2c94c;
+  --str: #9fd4a8; --tag: #e86b8a; --attr: #c49bff;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --ui: "Manrope", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: var(--night); color: var(--mist); }
+
+.chrome {
+  height: 64px; display: flex; align-items: center; gap: 22px; padding: 0 26px;
+  background: var(--bar); border-bottom: 1px solid var(--line); font-family: var(--ui);
+}
+.dots { display: flex; gap: 10px; }
+.dots i { width: 15px; height: 15px; border-radius: 50%; display: block; }
+.dots i:nth-child(1) { background: #ff5f57; } .dots i:nth-child(2) { background: #febc2e; } .dots i:nth-child(3) { background: #28c840; }
+.tab { flex: 1; text-align: center; font-weight: 700; font-size: 22px; letter-spacing: .02em; color: #f4f1ea; }
+.tab .h { color: var(--html); } .tab .c { color: var(--css); } .tab .j { color: var(--js); } .tab .s { color: var(--dim); font-weight: 500; }
+.url { font-family: var(--mono); font-size: 18px; color: var(--dim); }
+
+.stage { height: 1080px; border-bottom: 1px solid var(--line); }
+.stage iframe { width: 1080px; height: 1080px; border: 0; display: block; }
+
+.code { height: 776px; display: grid; grid-template-rows: 1fr 1fr 1fr; }
+.pane { border-top: 1px solid var(--line); padding: 18px 26px 0; overflow: hidden; }
+.pane:first-child { border-top: 0; }
+.file { font: 600 19px var(--mono); color: #f4f1ea; display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.file::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+pre { margin: 0; font: 400 18.5px/1.62 var(--mono); white-space: pre; color: var(--mist); }
+pre .ln { display: block; padding: 0 10px; margin: 0 -10px; border-radius: 6px; transition: background .35s, box-shadow .35s; }
+pre .ln.on { background: rgba(217,162,74,.14); box-shadow: inset 3px 0 0 var(--gold); }
+.t { color: var(--tag); } .a { color: var(--attr); } .s { color: var(--str); } .k { color: var(--css); } .f { color: var(--js); }
+.cm { color: var(--dim); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="chrome">
+  <div class="dots"><i></i><i></i><i></i></div>
+  <div class="tab">ЩИТ ОТ МОШЕННИКОВ <span class="s">—</span> <span class="h">HTML</span> <span class="s">·</span> <span class="c">CSS</span> <span class="s">·</span> <span class="j">JS</span></div>
+  <div class="url">localhost / login</div>
+</div>
+
+<div class="stage"><iframe id="app" src="../index.html" title="Страница входа"></iframe></div>
+
+<div class="code">
+  <div class="pane" style="--c: var(--html)">
+    <div class="file">index.html</div>
+<pre><span class="ln" id="h1"><span class="t">&lt;div</span> <span class="a">class</span>=<span class="s">"band"</span><span class="t">&gt;</span>                  <span class="cm">&lt;!-- одно лезвие, два шва --&gt;</span></span><span class="ln" id="h2">  <span class="t">&lt;span</span> <span class="a">class</span>=<span class="s">"band__edge"</span><span class="t">&gt;&lt;/span&gt;</span>   <span class="cm">&lt;!-- золотая светящаяся грань --&gt;</span></span><span class="ln" id="h3">  <span class="t">&lt;div</span> <span class="a">class</span>=<span class="s">"band__inner"</span><span class="t">&gt;</span>       <span class="cm">&lt;!-- едет назад, текст стоит --&gt;</span></span><span class="ln" id="h4">    <span class="t">&lt;h3&gt;</span>С возвращением<span class="t">&lt;em&gt;</span>.<span class="t">&lt;/em&gt;&lt;/h3&gt;</span></span></pre>
+  </div>
+  <div class="pane" style="--c: var(--css)">
+    <div class="file">app.css</div>
+<pre><span class="ln" id="c1"><span class="k">.band</span> {                   <span class="cm">/* скошенный прямоугольник, ОДИН translateX */</span></span><span class="ln" id="c2">  transform: <span class="f">translateX</span>(<span class="f">calc</span>(var(--bx) * 1cqw)) <span class="f">skewX</span>(var(--rake)); }</span><span class="ln" id="c3"><span class="k">.band__inner</span> {            <span class="cm">/* обратный ход — режет заголовок швом */</span></span><span class="ln" id="c4">  transform: <span class="f">translateX</span>(<span class="f">calc</span>(var(--bx) * -1cqw)) <span class="f">skewX</span>(-12deg); }</span></pre>
+  </div>
+  <div class="pane" style="--c: var(--js)">
+    <div class="file">app.js</div>
+<pre><span class="ln" id="j1">auth.dataset.mode = next;</span><span class="ln" id="j2"><span class="k">const</span> keys = [[0, from], [.44, cover], [.56, cover], [1, to]];</span><span class="ln" id="j3">                          <span class="cm">// лезвие закрывает карточку на пятую часть пути</span></span><span class="ln" id="j4"><span class="k">if</span> (t &gt;= .5) <span class="f">show</span>(next);   <span class="cm">// формы меняются под тёмным лезвием</span></span></pre>
+  </div>
+</div>
+
+<script>
+  // Подсветка строк кода — вызывается из сценария записи.
+  window.hl = ids => {
+    document.querySelectorAll('.ln.on').forEach(e => e.classList.remove('on'));
+    ids.forEach(id => document.getElementById(id)?.classList.add('on'));
+  };
+</script>
+</body>
+</html>
